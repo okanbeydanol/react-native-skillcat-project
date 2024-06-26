@@ -8,7 +8,7 @@ import {useDispatch, useSelector} from 'react-redux';
 
 // Screens
 import LoadingScreen from '../screens/LoadingScreen';
-import LoginScreen from '../screens/LoginScreen/LoginScreen';
+import LoginScreen from '../screens/LoginScreen';
 import CommunityScreen from '../screens/CommunityScreen';
 import ExploreScreen from '../screens/ExploreScreen';
 import LearnScreen from '../screens/LearnScreen';
