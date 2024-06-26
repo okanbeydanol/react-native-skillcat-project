@@ -1,0 +1,9 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+	<title>New Project</title>
+	<defs>
+		<image width="512" height="512" id="img1" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGNsYXNzPSJpb25pY29uIiB2aWV3Qm94PSIwIDAgNTEyIDUxMiI+PHRpdGxlPlBlcnNvbjwvdGl0bGU+PHBhdGggZD0iTTMzMi42NCA2NC41OEMzMTMuMTggNDMuNTcgMjg2IDMyIDI1NiAzMmMtMzAuMTYgMC01Ny40MyAxMS41LTc2LjggMzIuMzgtMTkuNTggMjEuMTEtMjkuMTIgNDkuOC0yNi44OCA4MC43OEMxNTYuNzYgMjA2LjI4IDIwMy4yNyAyNTYgMjU2IDI1NnM5OS4xNi00OS43MSAxMDMuNjctMTEwLjgyYzIuMjctMzAuNy03LjMzLTU5LjMzLTI3LjAzLTgwLjZ6TTQzMiA0ODBIODBhMzEgMzEgMCAwMS0yNC4yLTExLjEzYy02LjUtNy43Ny05LjEyLTE4LjM4LTcuMTgtMjkuMTFDNTcuMDYgMzkyLjk0IDgzLjQgMzUzLjYxIDEyNC44IDMyNmMzNi43OC0yNC41MSA4My4zNy0zOCAxMzEuMi0zOHM5NC40MiAxMy41IDEzMS4yIDM4YzQxLjQgMjcuNiA2Ny43NCA2Ni45MyA3Ni4xOCAxMTMuNzUgMS45NCAxMC43My0uNjggMjEuMzQtNy4xOCAyOS4xMUEzMSAzMSAwIDAxNDMyIDQ4MHoiLz48L3N2Zz4="/>
+	</defs>
+	<style>
+	</style>
+	<use id="person" href="#img1" transform="matrix(.25,0,0,.25,0,0)"/>
+</svg>
