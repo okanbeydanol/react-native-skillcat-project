@@ -27,9 +27,6 @@ export const customBaseQuery: BaseQueryFn<
   const params = new URLSearchParams({});
   const isApiUrl = url.includes('token.php');
   const isAjaxUrl = url.includes('service-nologin.php');
-  console.log('url: ', url);
-  console.log('patchedBody: ', patchedBody);
-  console.log('isApiUrl: ', isApiUrl);
   if (!isApiUrl && !isAjaxUrl) {
     const token = await getUserTokenFromStorage();
     if (!token) {
@@ -70,9 +67,6 @@ export const customBaseQuery: BaseQueryFn<
       : !isAjaxUrl
       ? `${BASE_URL}${url}?${params.toString()}`
       : `${BASE_URL}${url}`;
-  console.log('params: ', params);
-  console.log('finalUrl: ', finalUrl);
-
   const result = await fetchBaseQuery({baseUrl: BASE_URL})(
     {
       url: finalUrl,
@@ -83,11 +77,7 @@ export const customBaseQuery: BaseQueryFn<
     api,
     extraOptions,
   );
-  console.log('result: ', result);
-
   if (result.error) {
-    console.log('err1: ', {error: result.error.toString()});
-
     return {error: result.error.toString()};
   }
   const responseData = result.data as
