@@ -5,7 +5,7 @@ import {ExploreTabScreenProps} from '../../navigation/types';
 
 const ExploreScreen = ({
   navigation,
-  route
+  route,
 }: ExploreTabScreenProps<'ExploreScreen'>) => {
   return (
     <>

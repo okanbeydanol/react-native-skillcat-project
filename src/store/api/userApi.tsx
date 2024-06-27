@@ -110,7 +110,7 @@ export const userApi = createApi({
   reducerPath: 'userApi',
   baseQuery: customBaseQuery,
   endpoints: build => ({
-    getToken: build.query<USER, any>({
+    getToken: build.query<{token: string}, any>({
       query: patch => ({
         url: 'local/skillcat/pages/token.php',
         method: 'POST',
@@ -180,6 +180,13 @@ export const userApi = createApi({
         body: patch,
       }),
     }),
+    getUserLearningPlan: build.query<any, any>({
+      query: patch => ({
+        url: 'local_skillcat_get_user_learning_plan_v2',
+        method: 'POST',
+        body: patch,
+      }),
+    }),
   }),
 });
 
@@ -194,4 +201,5 @@ export const {
   useLazyResetUserPasswordQuery,
   useLazySignUpWithOauthQuery,
   useLazySignUpWithEmailQuery,
+  useLazyGetUserLearningPlanQuery,
 } = userApi;

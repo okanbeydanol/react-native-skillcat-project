@@ -1,7 +1,7 @@
 import React from 'react';
 import {Provider} from 'react-redux';
-import {persistor, store} from './src/store/index';
-import Navigation from './src/navigation/index';
+import {persistor, store} from './src/store';
+import Navigation from './src/navigation';
 import {
   SafeAreaProvider,
   SafeAreaView,
@@ -10,15 +10,15 @@ import {
 import {PersistGate} from 'redux-persist/integration/react';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {KeyboardProvider} from 'react-native-keyboard-controller';
+import {StyleSheet} from 'react-native';
 // persistor.purge();
-// AsyncStorage.clear();
 const App = () => {
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
         <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-          <SafeAreaView style={{flex: 1}}>
-            <GestureHandlerRootView style={{flex: 1}}>
+          <SafeAreaView style={GlobalStyles.flex}>
+            <GestureHandlerRootView style={GlobalStyles.flex}>
               <KeyboardProvider>
                 <Navigation />
               </KeyboardProvider>
@@ -29,5 +29,7 @@ const App = () => {
     </Provider>
   );
 };
-
+export const GlobalStyles = StyleSheet.create({
+  flex: {flex: 1},
+});
 export default App;

@@ -1,12 +1,10 @@
 import {DrawerScreenProps} from '@react-navigation/drawer';
-import type {
-  CompositeScreenProps,
-  NavigatorScreenParams,
-} from '@react-navigation/native';
+import type {CompositeScreenProps} from '@react-navigation/native';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
+import {NetworkStore} from '../store/slices/network.tsx';
 //Community
 export type CommunityTabParamList = {
-  CommunityScreen: undefined;
+  CommunityScreen: {networkStore: NetworkStore};
 };
 
 export type CommunityTabScreenProps<T extends keyof CommunityTabParamList> =
@@ -22,7 +20,7 @@ interface SectionsScreenProps {
   fromSkillsTab: boolean;
 }
 export type LearnTabParamList = {
-  LearnScreen: undefined;
+  LearnScreen: {networkStore: NetworkStore};
   sections: SectionsScreenProps;
 };
 
@@ -34,7 +32,7 @@ export type LearnTabScreenProps<T extends keyof LearnTabParamList> =
 
 //Explore
 export type ExploreTabParamList = {
-  ExploreScreen: undefined;
+  ExploreScreen: {networkStore: NetworkStore};
 };
 
 export type ExploreTabScreenProps<T extends keyof ExploreTabParamList> =
@@ -43,11 +41,10 @@ export type ExploreTabScreenProps<T extends keyof ExploreTabParamList> =
     RootStackScreenProps<keyof RootStackParamList>
   >;
 
-//Route
 export type RootStackParamList = {
-  Community: undefined;
-  Learn: undefined;
-  Explore: undefined;
+  Community: {networkStore: NetworkStore};
+  Learn: {networkStore: NetworkStore};
+  Explore: {networkStore: NetworkStore};
 };
 
 export type RootStackScreenProps<T extends keyof RootStackParamList> =

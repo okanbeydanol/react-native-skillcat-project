@@ -24,12 +24,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import Carousel, {ICarouselInstance} from 'react-native-reanimated-carousel';
 import {LongPressGestureHandler} from 'react-native-gesture-handler';
+import {storeData} from '../../utils/async-storage.tsx';
+import {LOGIN_SUCCESS, LoginType} from '../../store/slices/login.tsx';
 
 const LoginScreen = () => {
   const dispatch = useDispatch();
   const [user_token] = useLazyGetTokenQuery();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('kenyan@okan.epa');
+  const [password, setPassword] = useState('Test1234');
   const [showLogin, setShowLogin] = useState(false);
   const [sliderHeight, setSliderHeight] = useState(0);
   const PAGE_WIDTH = Dimensions.get('window').width;
@@ -58,8 +60,16 @@ const LoginScreen = () => {
 
   const handleLogin = () => {
     user_token({username, password}).then(response => {
+      console.log(response);
       if (response.isSuccess) {
         Alert.alert('Login Successful!');
+        dispatch(
+          LOGIN_SUCCESS({
+            type: LoginType.LOGIN_SUCCESS,
+            userToken: response.data.token,
+            loading: true,
+          }),
+        );
       } else {
         Alert.alert('Login Failed');
       }

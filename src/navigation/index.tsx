@@ -1,7 +1,17 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, {useEffect} from 'react';
-import {DefaultTheme, NavigationContainer} from '@react-navigation/native';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
+import {
+  DefaultTheme,
+  NavigationContainer,
+  ParamListBase,
+  StackNavigationState,
+  TypedNavigator,
+} from '@react-navigation/native';
+import {
+  createNativeStackNavigator,
+  NativeStackNavigationEventMap,
+  NativeStackNavigationOptions,
+} from '@react-navigation/native-stack';
 
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {useDispatch, useSelector} from 'react-redux';
@@ -14,10 +24,10 @@ import ExploreScreen from '../screens/ExploreScreen';
 import LearnScreen from '../screens/LearnScreen';
 
 import {
-  LoginType,
   getLoginStore,
   LOGIN_FAILED,
   LOGIN_SUCCESS,
+  LoginType,
 } from '../store/slices/login';
 import {getData, storeData} from '../utils/async-storage';
 import LearnIndexOutline from '../assets/images/tabs/learnindex-outline.svg';
@@ -29,8 +39,9 @@ import Community from '../assets/images/tabs/community.svg';
 import {
   EmitterSubscription,
   Keyboard,
-  Platform,
   KeyboardEvent,
+  Platform,
+  StyleSheet,
   View,
 } from 'react-native';
 import {
@@ -45,8 +56,7 @@ import {
   getVersion,
 } from 'react-native-device-info';
 import {DEVICEINFO_CHANGE} from '../store/slices/deviceInfo';
-import {PERMISSIONS_CHANGE} from '../store/slices/permissions';
-import {checkNotifications} from 'react-native-permissions';
+import {getPermissionsStore} from '../store/slices/permissions';
 import useAppUpdate from '../hooks/useAppUpdate';
 import {KEYBOARD_EVENT_CHANGE} from '../store/slices/keyboard';
 import {
@@ -55,46 +65,74 @@ import {
   LearnTabParamList,
   RootStackParamList,
 } from './types';
-import {getUserTokenFromStorage} from '../store/api/userApi';
-
-//Initialize Navigation
+import usePermissions from '../hooks/usePermissions.tsx';
+import NetInfo, {NetInfoState} from '@react-native-community/netinfo';
+import {getNetworkStore, NETWORK_CHANGE} from '../store/slices/network';
+import {NativeStackNavigatorProps} from 'react-native-screens/lib/typescript/native-stack/types';
 export default function Navigation() {
   const loginStore = useSelector(getLoginStore);
+  const permissionStore = useSelector(getPermissionsStore);
   const dispatch = useDispatch();
   const appUpdate = useAppUpdate();
-  //Get Theme
+  const permissions = usePermissions();
+  const networkStore = useSelector((state: {network: NetworkStore}) =>
+    getNetworkStore(state),
+  );
   const navTheme = DefaultTheme;
   navTheme.colors.background = '#fff';
-  //Initialize Beginning Controller
+
   useEffect(() => {
-    if (loginStore.type === LoginType.LOGIN_SUCCESS) {
+    if (loginStore.type === LoginType.RESTORE_TOKEN) {
       setTimeout(async () => {
-        storeData('s[userToken]', loginStore.userToken);
-      }, 10);
-    } else if (loginStore.type === LoginType.RESTORE_TOKEN) {
-      const getUserToken = async () => {
-        let userToken;
-        try {
-          userToken = await getUserTokenFromStorage();
-        } catch (e) {
-          // Restoring token failed
+        if (!loginStore.userToken) {
+          dispatch(
+            LOGIN_FAILED({
+              type: LoginType.LOGIN_FAILED,
+              userToken: null,
+              loading: true,
+            }),
+          );
+        } else {
+          dispatch(
+            LOGIN_SUCCESS({
+              type: LoginType.LOGIN_SUCCESS,
+              userToken: loginStore.userToken,
+              loading: true,
+            }),
+          );
         }
-        return userToken;
-      };
-      setTimeout(async () => {
-        await appUpdate.CheckAppUpdate();
-        const deviceInfo = await getData('[deviceInfo]');
-        if (deviceInfo === null) {
-          const fingerprint = await getFingerprint();
-          const uniqueId = await getUniqueId();
-          const version = await getVersion();
-          const buildNumber = await getBuildNumber();
-          const bundleId = await getBundleId();
-          const deviceId = await getDeviceId();
-          const manufacturer = await getManufacturer();
-          const model = await getModel();
-          const brand = await getBrand();
-          storeData('[deviceInfo]', {
+      }, 1);
+    }
+  }, [loginStore.type]);
+
+  useEffect(() => {
+    console.log('-------This should render only 1 time----------: NAVIGATION');
+    setTimeout(async () => {
+      await appUpdate.CheckAppUpdate();
+      const deviceInfo = await getData('[deviceInfo]');
+      if (deviceInfo === null) {
+        const fingerprint = await getFingerprint();
+        const uniqueId = await getUniqueId();
+        const version = getVersion();
+        const buildNumber = getBuildNumber();
+        const bundleId = getBundleId();
+        const deviceId = getDeviceId();
+        const manufacturer = await getManufacturer();
+        const model = getModel();
+        const brand = getBrand();
+        await storeData('[deviceInfo]', {
+          uniqueId,
+          bundleId,
+          deviceId,
+          manufacturer,
+          model,
+          brand,
+          fingerprint,
+          version,
+          buildNumber,
+        });
+        dispatch(
+          DEVICEINFO_CHANGE({
             uniqueId,
             bundleId,
             deviceId,
@@ -104,73 +142,22 @@ export default function Navigation() {
             fingerprint,
             version,
             buildNumber,
-          });
-          dispatch(
-            DEVICEINFO_CHANGE({
-              uniqueId,
-              bundleId,
-              deviceId,
-              manufacturer,
-              model,
-              brand,
-              fingerprint,
-              version,
-              buildNumber,
-            }),
-          );
-        }
-        const permissionsInfo = await getData('[permissionsInfo]');
-        if (permissionsInfo === null) {
-          const notification = await (await checkNotifications()).status;
-          console.log('notification', notification);
-          storeData('[permissionsInfo]', {
-            storage: {
-              WRITE_EXTERNAL_STORAGE: null,
-              READ_EXTERNAL_STORAGE: null,
-              READ_MEDIA_IMAGES: null,
-              READ_MEDIA_VIDEO: null,
-            },
-            camera: null,
-            audio: {RECORD_AUDIO: null, READ_MEDIA_AUDIO: null},
-            notification: notification === 'granted' ? true : false,
-          });
-          dispatch(
-            PERMISSIONS_CHANGE({
-              storage: {
-                WRITE_EXTERNAL_STORAGE: null,
-                READ_EXTERNAL_STORAGE: null,
-                READ_MEDIA_IMAGES: null,
-                READ_MEDIA_VIDEO: null,
-              },
-              camera: null,
-              audio: {RECORD_AUDIO: null, READ_MEDIA_AUDIO: null},
-              notification: notification === 'granted' ? true : false,
-            }),
-          );
-        }
-        const userToken = await getUserToken();
-        if (userToken === null) {
-          dispatch(
-            LOGIN_FAILED({
-              type: LoginType.LOGIN_FAILED,
-              userToken: userToken,
-              loading: true,
-            }),
-          );
-        } else {
-          dispatch(
-            LOGIN_SUCCESS({
-              type: LoginType.LOGIN_SUCCESS,
-              userToken: userToken,
-              loading: true,
-            }),
-          );
-        }
-      }, 10);
-    }
-  }, [loginStore.type]);
+          }),
+        );
+      }
+      if (!permissionStore.permissionsIsChecked) {
+        await permissions.checkPermissions();
+      }
+    }, 1);
+    const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
+      dispatch(
+        NETWORK_CHANGE({
+          isConnected: state.isConnected,
+          isWifiEnabled: state.isWifiEnabled,
+        }),
+      );
+    });
 
-  useEffect(() => {
     if (Platform.OS === 'ios') {
       const keyboardListenerWillHide: EmitterSubscription =
         Keyboard.addListener('keyboardWillHide', (event: KeyboardEvent) => {
@@ -218,6 +205,7 @@ export default function Navigation() {
         },
       );
       return () => {
+        unsubscribe();
         keyboardListenerDidHide.remove();
         keyboardListenerDidShow.remove();
       };
@@ -226,11 +214,10 @@ export default function Navigation() {
 
   return (
     <NavigationContainer theme={navTheme}>
-      <RootNavigator />
+      <RootNavigator networkStore={networkStore} />
     </NavigationContainer>
   );
 }
-
 //Navigator Stacks
 const Stack = createNativeStackNavigator();
 const LearnStack = createNativeStackNavigator<LearnTabParamList>();
@@ -238,10 +225,14 @@ const ExploreStack = createNativeStackNavigator<ExploreTabParamList>();
 const CommunityStack = createNativeStackNavigator<CommunityTabParamList>();
 const LoadingStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator<RootStackParamList>();
+//Route
+type NetworkStore = {
+  isConnected: boolean | null;
+  isWifiEnabled: boolean | undefined;
+};
 
-const RootNavigator = () => {
+const RootNavigator = ({networkStore}: {networkStore: NetworkStore}) => {
   const loginStore = useSelector(getLoginStore);
-  console.log('loginStore', loginStore);
   return (
     <Stack.Navigator
       screenOptions={{
@@ -252,6 +243,7 @@ const RootNavigator = () => {
           <Stack.Screen
             options={{animation: 'fade'}}
             name="Tabs"
+            initialParams={{networkStore}}
             component={TabNavigator}
           />
         </Stack.Group>
@@ -260,6 +252,7 @@ const RootNavigator = () => {
           <Stack.Screen
             options={{animation: 'fade'}}
             name="LoginScreen"
+            initialParams={{networkStore}}
             component={LoginScreen}
           />
         </Stack.Group>
@@ -274,7 +267,11 @@ const RootNavigator = () => {
   );
 };
 
-const TabNavigator = () => {
+const TabNavigator = ({route}: NativeStackNavigatorProps) => {
+  const networkStore = route.params.networkStore;
+  const styles = StyleSheet.create({
+    width32: {width: 32},
+  });
   return (
     <Tab.Navigator
       initialRouteName="Learn"
@@ -288,31 +285,31 @@ const TabNavigator = () => {
           let iconName: any;
           if (route.name === 'Community') {
             iconName = focused ? (
-              <View style={{width: 32}}>
+              <View style={styles.width32}>
                 <Community />
               </View>
             ) : (
-              <View style={{width: 32}}>
+              <View style={styles.width32}>
                 <CommunityOutline />
               </View>
             );
           } else if (route.name === 'Learn') {
             iconName = focused ? (
-              <View style={{width: 32}}>
+              <View style={styles.width32}>
                 <LearnIndex />
               </View>
             ) : (
-              <View style={{width: 32}}>
+              <View style={styles.width32}>
                 <LearnIndexOutline />
               </View>
             );
           } else if (route.name === 'Explore') {
             iconName = focused ? (
-              <View style={{width: 32}}>
+              <View style={styles.width32}>
                 <Explore />
               </View>
             ) : (
-              <View style={{width: 32}}>
+              <View style={styles.width32}>
                 <ExploreOutline />
               </View>
             );
@@ -322,39 +319,60 @@ const TabNavigator = () => {
         tabBarShowLabel: false,
         tabBarStyle: {height: 56},
       })}>
-      <Tab.Screen name="Community" component={CommunityStackNavigator} />
       <Tab.Screen
+        initialParams={{networkStore}}
+        name="Community"
+        component={CommunityStackNavigator}
+      />
+      <Tab.Screen
+        initialParams={{networkStore}}
         name="Learn"
         component={LearnStackNavigator}
         options={{
           tabBarBadge: 1,
         }}
       />
-      <Tab.Screen name="Explore" component={ExploreStackNavigator} />
+      <Tab.Screen
+        initialParams={{networkStore}}
+        name="Explore"
+        component={ExploreStackNavigator}
+      />
     </Tab.Navigator>
   );
 };
 
-const LearnStackNavigator = () => {
+const LearnStackNavigator = ({route}: NativeStackNavigatorProps) => {
+  const networkStore = route.params.networkStore;
   return (
     <LearnStack.Navigator screenOptions={{headerShown: false}}>
-      <LearnStack.Screen name="LearnScreen" component={LearnScreen} />
+      <LearnStack.Screen
+        initialParams={{networkStore}}
+        name="LearnScreen"
+        component={LearnScreen}
+      />
     </LearnStack.Navigator>
   );
 };
 
-const ExploreStackNavigator = () => {
+const ExploreStackNavigator = ({route}: NativeStackNavigatorProps) => {
+  const networkStore = route.params.networkStore;
   return (
     <ExploreStack.Navigator screenOptions={{headerShown: false}}>
-      <ExploreStack.Screen name="ExploreScreen" component={ExploreScreen} />
+      <ExploreStack.Screen
+        initialParams={{networkStore}}
+        name="ExploreScreen"
+        component={ExploreScreen}
+      />
     </ExploreStack.Navigator>
   );
 };
 
-const CommunityStackNavigator = () => {
+const CommunityStackNavigator = ({route}: NativeStackNavigatorProps) => {
+  const networkStore = route.params.networkStore;
   return (
     <CommunityStack.Navigator screenOptions={{headerShown: false}}>
       <CommunityStack.Screen
+        initialParams={{networkStore}}
         name="CommunityScreen"
         component={CommunityScreen}
       />
@@ -362,10 +380,15 @@ const CommunityStackNavigator = () => {
   );
 };
 
-const LoadingStackNavigator = () => {
+const LoadingStackNavigator = ({route}: NativeStackNavigatorProps) => {
+  const networkStore = route.params.networkStore;
   return (
     <LoadingStack.Navigator screenOptions={{headerShown: false}}>
-      <LoadingStack.Screen name="LoadingScreen" component={LoadingScreen} />
+      <LoadingStack.Screen
+        initialParams={{networkStore}}
+        name="LoadingScreen"
+        component={LoadingScreen}
+      />
     </LoadingStack.Navigator>
   );
 };

@@ -10,6 +10,7 @@ export type PermissionsResult = {
     READ_MEDIA_VIDEO: boolean | null;
   };
   notification: boolean | null;
+  permissionsIsChecked: boolean | null;
 };
 
 const initialState: PermissionsResult = {
@@ -22,6 +23,7 @@ const initialState: PermissionsResult = {
   camera: null,
   audio: {RECORD_AUDIO: null, READ_MEDIA_AUDIO: null},
   notification: null,
+  permissionsIsChecked: false,
 };
 
 export const permissionsSlice = createSlice({

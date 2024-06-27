@@ -17,13 +17,13 @@ const SafeAreaAppHeader = ({
 }: {
   style?: ViewStyle | TextStyle | ImageStyle;
   children?: any;
-  headerLayout: (layout: LayoutRectangle) => void;
+  headerLayout?: (layout: LayoutRectangle) => void;
 }) => {
   const handleHeaderLayout = (
     event: NativeSyntheticEvent<{layout: LayoutRectangle}>,
   ) => {
     const layout = event.nativeEvent.layout;
-    headerLayout(layout);
+    headerLayout && headerLayout(layout);
   };
   return (
     <SafeAreaView
