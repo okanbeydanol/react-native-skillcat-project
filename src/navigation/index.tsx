@@ -3,15 +3,10 @@ import React, {useEffect} from 'react';
 import {
   DefaultTheme,
   NavigationContainer,
-  ParamListBase,
-  StackNavigationState,
-  TypedNavigator,
+  RouteProp,
+  Theme,
 } from '@react-navigation/native';
-import {
-  createNativeStackNavigator,
-  NativeStackNavigationEventMap,
-  NativeStackNavigationOptions,
-} from '@react-navigation/native-stack';
+import {createNativeStackNavigator} from '@react-navigation/native-stack';
 
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {useDispatch, useSelector} from 'react-redux';
@@ -25,8 +20,7 @@ import LearnScreen from '../screens/LearnScreen';
 
 import {
   getLoginStore,
-  LOGIN_FAILED,
-  LOGIN_SUCCESS,
+  LOGIN_STATUS_CHANGED,
   LoginType,
 } from '../store/slices/login';
 import {getData, storeData} from '../utils/async-storage';
@@ -39,7 +33,6 @@ import Community from '../assets/images/tabs/community.svg';
 import {
   EmitterSubscription,
   Keyboard,
-  KeyboardEvent,
   Platform,
   StyleSheet,
   View,
@@ -56,7 +49,6 @@ import {
   getVersion,
 } from 'react-native-device-info';
 import {DEVICEINFO_CHANGE} from '../store/slices/deviceInfo';
-import {getPermissionsStore} from '../store/slices/permissions';
 import useAppUpdate from '../hooks/useAppUpdate';
 import {KEYBOARD_EVENT_CHANGE} from '../store/slices/keyboard';
 import {
@@ -66,155 +58,173 @@ import {
   RootStackParamList,
 } from './types';
 import usePermissions from '../hooks/usePermissions.tsx';
-import NetInfo, {NetInfoState} from '@react-native-community/netinfo';
-import {getNetworkStore, NETWORK_CHANGE} from '../store/slices/network';
+import {getNetworkStore, NetworkStore} from '../store/slices/network';
 import {NativeStackNavigatorProps} from 'react-native-screens/lib/typescript/native-stack/types';
+import {getUserTokenFromStorage} from '../store/api/userApi';
+import {Dispatch, UnknownAction} from 'redux';
+import useNetwork from '../hooks/useNetwork';
 export default function Navigation() {
   const loginStore = useSelector(getLoginStore);
-  const permissionStore = useSelector(getPermissionsStore);
-  const dispatch = useDispatch();
+  const dispatch: Dispatch<UnknownAction> = useDispatch();
   const appUpdate = useAppUpdate();
+  const network = useNetwork();
   const permissions = usePermissions();
-  const networkStore = useSelector((state: {network: NetworkStore}) =>
-    getNetworkStore(state),
-  );
-  const navTheme = DefaultTheme;
+  const navTheme: Theme = DefaultTheme;
   navTheme.colors.background = '#fff';
-
   useEffect(() => {
-    if (loginStore.type === LoginType.RESTORE_TOKEN) {
-      setTimeout(async () => {
-        if (!loginStore.userToken) {
-          dispatch(
-            LOGIN_FAILED({
-              type: LoginType.LOGIN_FAILED,
-              userToken: null,
-              loading: true,
-            }),
-          );
-        } else {
-          dispatch(
-            LOGIN_SUCCESS({
-              type: LoginType.LOGIN_SUCCESS,
-              userToken: loginStore.userToken,
-              loading: true,
-            }),
-          );
-        }
-      }, 1);
-    }
-  }, [loginStore.type]);
+    console.log(
+      '-------This should render only 1 time----------: NAVIGATION:useEffect2',
+    );
+    const subscribeToKeyboardEvents = (): (() => void) => {
+      if (Platform.OS === 'ios') {
+        const keyboardListenerWillHide: EmitterSubscription =
+          Keyboard.addListener('keyboardWillHide', event => {
+            dispatch(
+              KEYBOARD_EVENT_CHANGE({
+                type: 'keyboardWillHide',
+                event: event,
+                height: event.endCoordinates.height,
+                status: false,
+              }),
+            );
+          });
 
-  useEffect(() => {
-    console.log('-------This should render only 1 time----------: NAVIGATION');
-    setTimeout(async () => {
-      await appUpdate.CheckAppUpdate();
-      const deviceInfo = await getData('[deviceInfo]');
-      if (deviceInfo === null) {
-        const fingerprint = await getFingerprint();
-        const uniqueId = await getUniqueId();
-        const version = getVersion();
-        const buildNumber = getBuildNumber();
-        const bundleId = getBundleId();
-        const deviceId = getDeviceId();
-        const manufacturer = await getManufacturer();
-        const model = getModel();
-        const brand = getBrand();
-        await storeData('[deviceInfo]', {
-          uniqueId,
-          bundleId,
-          deviceId,
-          manufacturer,
-          model,
-          brand,
-          fingerprint,
-          version,
-          buildNumber,
-        });
+        const keyboardListenerWillShow: EmitterSubscription =
+          Keyboard.addListener('keyboardWillShow', event => {
+            dispatch(
+              KEYBOARD_EVENT_CHANGE({
+                type: 'keyboardWillShow',
+                event: event,
+                height: event.endCoordinates.height,
+                status: true,
+              }),
+            );
+          });
+
+        return () => {
+          keyboardListenerWillHide.remove();
+          keyboardListenerWillShow.remove();
+        };
+      } else {
+        const keyboardListenerDidHide: EmitterSubscription =
+          Keyboard.addListener('keyboardDidHide', event => {
+            dispatch(
+              KEYBOARD_EVENT_CHANGE({
+                type: 'keyboardDidHide',
+                event: event,
+                height: event.endCoordinates.height,
+                status: false,
+              }),
+            );
+          });
+
+        const keyboardListenerDidShow: EmitterSubscription =
+          Keyboard.addListener('keyboardDidShow', event => {
+            dispatch(
+              KEYBOARD_EVENT_CHANGE({
+                type: 'keyboardDidShow',
+                event: event,
+                height: event.endCoordinates.height,
+                status: true,
+              }),
+            );
+          });
+
+        return () => {
+          keyboardListenerDidHide.remove();
+          keyboardListenerDidShow.remove();
+        };
+      }
+    };
+    const unsubscribeKeyboard = subscribeToKeyboardEvents();
+    const checkUserToken = async (): Promise<void> => {
+      let token = loginStore.userToken
+        ? loginStore.userToken
+        : await getUserTokenFromStorage();
+      console.log('token', token);
+      if (!loginStore.userToken && !token) {
         dispatch(
-          DEVICEINFO_CHANGE({
-            uniqueId,
-            bundleId,
-            deviceId,
-            manufacturer,
-            model,
-            brand,
-            fingerprint,
-            version,
-            buildNumber,
+          LOGIN_STATUS_CHANGED({
+            type: LoginType.LOGIN_FAILED,
+            userToken: null,
+            loading: false,
+          }),
+        );
+      } else {
+        dispatch(
+          LOGIN_STATUS_CHANGED({
+            type: LoginType.LOGIN_SUCCESS,
+            userToken: token,
+            loading: false,
           }),
         );
       }
-      if (!permissionStore.permissionsIsChecked) {
-        await permissions.checkPermissions();
+    };
+    const fetchDeviceInfo = async (): Promise<void> => {
+      const deviceInfo = await getData('[deviceInfo]');
+      if (deviceInfo === null) {
+        const newDeviceInfo = {
+          fingerprint: await getFingerprint(),
+          uniqueId: await getUniqueId(),
+          version: getVersion(),
+          buildNumber: getBuildNumber(),
+          bundleId: getBundleId(),
+          deviceId: getDeviceId(),
+          manufacturer: await getManufacturer(),
+          model: getModel(),
+          brand: getBrand(),
+        };
+        await storeData('[deviceInfo]', newDeviceInfo);
+        dispatch(DEVICEINFO_CHANGE(newDeviceInfo));
       }
-    }, 1);
-    const unsubscribe = NetInfo.addEventListener((state: NetInfoState) => {
-      dispatch(
-        NETWORK_CHANGE({
-          isConnected: state.isConnected,
-          isWifiEnabled: state.isWifiEnabled,
-        }),
-      );
-    });
+    };
+    const initializeApp = async (): Promise<void> => {
+      await appUpdate.CheckAppUpdate();
+      await network.listenNetwork();
+      await permissions.checkPermissions();
+      await fetchDeviceInfo();
+      await checkUserToken();
+    };
 
-    if (Platform.OS === 'ios') {
-      const keyboardListenerWillHide: EmitterSubscription =
-        Keyboard.addListener('keyboardWillHide', (event: KeyboardEvent) => {
-          dispatch(
-            KEYBOARD_EVENT_CHANGE({
-              type: 'keyboardWillHide',
-              event: event,
-            }),
-          );
-        });
-      const keyboardListenerWillShow: EmitterSubscription =
-        Keyboard.addListener('keyboardWillShow', (event: KeyboardEvent) => {
-          dispatch(
-            KEYBOARD_EVENT_CHANGE({
-              type: 'keyboardWillShow',
-              event: event,
-            }),
-          );
-        });
-      return () => {
-        keyboardListenerWillHide.remove();
-        keyboardListenerWillShow.remove();
-      };
-    } else {
-      const keyboardListenerDidHide: EmitterSubscription = Keyboard.addListener(
-        'keyboardDidHide',
-        (event: KeyboardEvent) => {
-          dispatch(
-            KEYBOARD_EVENT_CHANGE({
-              type: 'keyboardDidHide',
-              event: event,
-            }),
-          );
-        },
-      );
-      const keyboardListenerDidShow: EmitterSubscription = Keyboard.addListener(
-        'keyboardDidShow',
-        (event: KeyboardEvent) => {
-          dispatch(
-            KEYBOARD_EVENT_CHANGE({
-              type: 'keyboardDidShow',
-              event: event,
-            }),
-          );
-        },
-      );
-      return () => {
-        unsubscribe();
-        keyboardListenerDidHide.remove();
-        keyboardListenerDidShow.remove();
-      };
-    }
+    initializeApp();
+
+    return () => {
+      unsubscribeKeyboard();
+    };
   }, [dispatch]);
 
   return (
     <NavigationContainer theme={navTheme}>
-      <RootNavigator networkStore={networkStore} />
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+        }}>
+        {!loginStore.loading && loginStore.type === LoginType.LOGIN_SUCCESS ? (
+          <Stack.Group>
+            <Stack.Screen
+              options={{animation: 'fade'}}
+              name="Tabs"
+              component={TabNavigator}
+            />
+          </Stack.Group>
+        ) : !loginStore.loading &&
+          (loginStore.type === LoginType.LOGIN_FAILED ||
+            LoginType.RESTORE_TOKEN) ? (
+          <Stack.Group>
+            <Stack.Screen
+              options={{animation: 'fade'}}
+              name="LoginScreen"
+              component={LoginScreen}
+            />
+          </Stack.Group>
+        ) : (
+          <Stack.Screen
+            options={{animation: 'fade'}}
+            name="Loading"
+            component={LoadingStackNavigator}
+          />
+        )}
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
@@ -225,100 +235,50 @@ const ExploreStack = createNativeStackNavigator<ExploreTabParamList>();
 const CommunityStack = createNativeStackNavigator<CommunityTabParamList>();
 const LoadingStack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator<RootStackParamList>();
-//Route
-type NetworkStore = {
-  isConnected: boolean | null;
-  isWifiEnabled: boolean | undefined;
-};
 
-const RootNavigator = ({networkStore}: {networkStore: NetworkStore}) => {
-  const loginStore = useSelector(getLoginStore);
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}>
-      {loginStore.type === LoginType.LOGIN_SUCCESS ? (
-        <Stack.Group>
-          <Stack.Screen
-            options={{animation: 'fade'}}
-            name="Tabs"
-            initialParams={{networkStore}}
-            component={TabNavigator}
-          />
-        </Stack.Group>
-      ) : loginStore.type === LoginType.LOGIN_FAILED ? (
-        <Stack.Group>
-          <Stack.Screen
-            options={{animation: 'fade'}}
-            name="LoginScreen"
-            initialParams={{networkStore}}
-            component={LoginScreen}
-          />
-        </Stack.Group>
-      ) : (
-        <Stack.Screen
-          options={{animation: 'fade'}}
-          name="Loading"
-          component={LoadingStackNavigator}
-        />
-      )}
-    </Stack.Navigator>
-  );
-};
-
-const TabNavigator = ({route}: NativeStackNavigatorProps) => {
-  const networkStore = route.params.networkStore;
+const TabNavigator = () => {
+  const networkStore: NetworkStore = useSelector(getNetworkStore);
   const styles = StyleSheet.create({
     width32: {width: 32},
   });
+  const iconElement = (children: React.JSX.Element): React.JSX.Element => {
+    return <View style={styles.width32}>{children}</View>;
+  };
+  const screenOptions = (tabs: {route: RouteProp<RootStackParamList>}) => {
+    const tabBarIcon = ({focused}: {focused: boolean}) => {
+      return iconElement(
+        tabs.route.name === 'Community' ? (
+          focused ? (
+            <Community />
+          ) : (
+            <CommunityOutline />
+          )
+        ) : tabs.route.name === 'Learn' ? (
+          focused ? (
+            <LearnIndex />
+          ) : (
+            <LearnIndexOutline />
+          )
+        ) : focused ? (
+          <Explore />
+        ) : (
+          <ExploreOutline />
+        ),
+      );
+    };
+    return {
+      lazy: true,
+      animationEnabled: false,
+      swipeEnabled: true,
+      headerShown: false,
+      drawerHideStatusBarOnOpen: false,
+      tabBarIcon,
+      tabBarShowLabel: false,
+      tabBarStyle: {height: 56},
+    };
+  };
   return (
-    <Tab.Navigator
-      initialRouteName="Learn"
-      screenOptions={({route}) => ({
-        lazy: true,
-        animationEnabled: false,
-        swipeEnabled: true,
-        headerShown: false,
-        drawerHideStatusBarOnOpen: false,
-        tabBarIcon: ({focused}) => {
-          let iconName: any;
-          if (route.name === 'Community') {
-            iconName = focused ? (
-              <View style={styles.width32}>
-                <Community />
-              </View>
-            ) : (
-              <View style={styles.width32}>
-                <CommunityOutline />
-              </View>
-            );
-          } else if (route.name === 'Learn') {
-            iconName = focused ? (
-              <View style={styles.width32}>
-                <LearnIndex />
-              </View>
-            ) : (
-              <View style={styles.width32}>
-                <LearnIndexOutline />
-              </View>
-            );
-          } else if (route.name === 'Explore') {
-            iconName = focused ? (
-              <View style={styles.width32}>
-                <Explore />
-              </View>
-            ) : (
-              <View style={styles.width32}>
-                <ExploreOutline />
-              </View>
-            );
-          }
-          return iconName;
-        },
-        tabBarShowLabel: false,
-        tabBarStyle: {height: 56},
-      })}>
+    <Tab.Navigator initialRouteName="Learn" screenOptions={screenOptions}>
       <Tab.Screen
         initialParams={{networkStore}}
         name="Community"
@@ -380,8 +340,8 @@ const CommunityStackNavigator = ({route}: NativeStackNavigatorProps) => {
   );
 };
 
-const LoadingStackNavigator = ({route}: NativeStackNavigatorProps) => {
-  const networkStore = route.params.networkStore;
+const LoadingStackNavigator = () => {
+  const networkStore: NetworkStore = useSelector(getNetworkStore);
   return (
     <LoadingStack.Navigator screenOptions={{headerShown: false}}>
       <LoadingStack.Screen

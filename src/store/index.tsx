@@ -2,18 +2,24 @@ import {
   combineReducers,
   configureStore,
   ConfigureStoreOptions,
+  EnhancedStore,
+  StoreEnhancer,
+  ThunkDispatch,
+  Tuple,
 } from '@reduxjs/toolkit';
-import dbLoginSliceReducer from './slices/login';
+import dbLoginSliceReducer, {LoginResult} from './slices/login';
 import keyboardEventsSliceReducer from './slices/keyboard';
 import deviceInfoSliceReducer from './slices/deviceInfo';
 import permissionsSliceReducer from './slices/permissions';
 import learningPlansSliceReducer from './slices/learningPlans';
 import networkSliceReducer from './slices/network';
 import {userApi} from './api/userApi';
-import {persistReducer, persistStore} from 'redux-persist';
+import {createTransform, persistReducer, persistStore} from 'redux-persist';
 import AsyncStorage, {
   AsyncStorageStatic,
 } from '@react-native-async-storage/async-storage';
+import {UnknownAction} from 'redux';
+import {Persistor} from 'redux-persist/es/types';
 
 const rootReducer = combineReducers({
   login: dbLoginSliceReducer,
@@ -33,13 +39,7 @@ const persistConfig: {
 } = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: [
-    'login',
-    'keyboardEvents',
-    'deviceInfo',
-    'permissions',
-    'learningPlans',
-  ],
+  whitelist: ['keyboardEvents', 'deviceInfo', 'permissions', 'learningPlans'],
   blacklist: ['network'],
 };
 
@@ -65,5 +65,14 @@ export const createStore = (
     ...options,
   });
 
-export const store = createStore();
-export const persistor = persistStore(store);
+export const store: EnhancedStore<
+  any,
+  UnknownAction,
+  Tuple<
+    [
+      StoreEnhancer<{dispatch: ThunkDispatch<any, undefined, UnknownAction>}>,
+      StoreEnhancer,
+    ]
+  >
+> = createStore();
+export const persistor: Persistor = persistStore(store);

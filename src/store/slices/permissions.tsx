@@ -1,4 +1,10 @@
-import {createSlice} from '@reduxjs/toolkit';
+import {
+  ActionCreatorWithPayload,
+  createSlice,
+  PayloadAction,
+  Slice,
+  SliceSelectors,
+} from '@reduxjs/toolkit';
 
 export type PermissionsResult = {
   camera: boolean | null;
@@ -26,17 +32,38 @@ const initialState: PermissionsResult = {
   permissionsIsChecked: false,
 };
 
-export const permissionsSlice = createSlice({
+export const permissionsSlice: Slice<
+  PermissionsResult,
+  {
+    PERMISSIONS_CHANGE: (
+      state: PermissionsResult,
+      action: PayloadAction<PermissionsResult>,
+    ) => PermissionsResult;
+  },
+  'permissions',
+  'permissions',
+  SliceSelectors<PermissionsResult>
+> = createSlice({
   name: 'permissions',
   initialState,
   reducers: {
-    PERMISSIONS_CHANGE: (state, action) => {
+    PERMISSIONS_CHANGE: (
+      state: PermissionsResult,
+      action: PayloadAction<PermissionsResult>,
+    ) => {
       return action.payload;
     },
   },
 });
 
-export const {PERMISSIONS_CHANGE} = permissionsSlice.actions;
+export const {
+  PERMISSIONS_CHANGE,
+}: {
+  PERMISSIONS_CHANGE: ActionCreatorWithPayload<
+    PermissionsResult,
+    'permissions/PERMISSIONS_CHANGE'
+  >;
+} = permissionsSlice.actions;
 
 export const getPermissionsStore = (state: {permissions: PermissionsResult}) =>
   state.permissions;

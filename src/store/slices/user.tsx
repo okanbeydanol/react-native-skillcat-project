@@ -1,11 +1,23 @@
-import {createSlice, PayloadAction} from '@reduxjs/toolkit';
+import {
+  ActionCreatorWithPayload,
+  createSlice,
+  PayloadAction,
+  Slice,
+  SliceSelectors,
+} from '@reduxjs/toolkit';
 import {USER} from '../../constants/typescript/general-types';
 
 const initialState: USER = {
-  id: null,
+  id: undefined,
 };
 
-export const userSlice = createSlice({
+export const userSlice: Slice<
+  USER,
+  {USER_CHANGE: (state: USER, action: PayloadAction<USER>) => USER},
+  'user',
+  'user',
+  SliceSelectors<USER>
+> = createSlice({
   name: 'user',
   initialState,
   reducers: {
@@ -14,7 +26,10 @@ export const userSlice = createSlice({
     },
   },
 });
-export const {USER_CHANGE} = userSlice.actions;
+export const {
+  USER_CHANGE,
+}: {USER_CHANGE: ActionCreatorWithPayload<USER, 'user/USER_CHANGE'>} =
+  userSlice.actions;
 
 export const getUserStore = (state: {user: USER}) => state.user;
 

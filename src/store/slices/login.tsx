@@ -1,4 +1,11 @@
-import {createSlice} from '@reduxjs/toolkit';
+import {
+  ActionCreatorWithPayload,
+  createSlice,
+  PayloadAction,
+  Slice,
+  SliceSelectors,
+} from '@reduxjs/toolkit';
+import {saveUserTokenToStorage} from '../api/userApi.tsx';
 
 export type LoginResult = {
   type: LoginType;
@@ -18,24 +25,39 @@ const initialState: LoginResult = {
   loading: true,
 };
 
-export const dbLoginSlice = createSlice({
+export const dbLoginSlice: Slice<
+  LoginResult,
+  {
+    LOGIN_STATUS_CHANGED: (
+      state: LoginResult,
+      action: PayloadAction<LoginResult>,
+    ) => LoginResult;
+  },
+  'login',
+  'login',
+  SliceSelectors<LoginResult>
+> = createSlice({
   name: 'login',
   initialState,
   reducers: {
-    LOGIN_SUCCESS: (state, action) => {
-      return action.payload;
-    },
-    LOGIN_FAILED: (state, action) => {
-      return action.payload;
-    },
-    LOGOUT: (state, action) => {
-      action.payload.type = LoginType.LOGIN_FAILED;
+    LOGIN_STATUS_CHANGED: (
+      state: LoginResult,
+      action: PayloadAction<LoginResult>,
+    ) => {
+      saveUserTokenToStorage(action.payload.userToken);
       return action.payload;
     },
   },
 });
 
-export const {LOGIN_SUCCESS, LOGIN_FAILED, LOGOUT} = dbLoginSlice.actions;
+export const {
+  LOGIN_STATUS_CHANGED,
+}: {
+  LOGIN_STATUS_CHANGED: ActionCreatorWithPayload<
+    LoginResult,
+    'login/LOGIN_STATUS_CHANGED'
+  >;
+} = dbLoginSlice.actions;
 
 export const getLoginStore = (state: {login: LoginResult}) => state.login;
 

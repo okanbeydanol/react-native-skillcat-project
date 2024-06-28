@@ -12,7 +12,10 @@ import {
   View,
 } from 'react-native';
 import {useDispatch} from 'react-redux';
-import {useLazyGetTokenQuery} from '../../store/api/userApi';
+import {
+  saveUserTokenToStorage,
+  useLazyGetTokenQuery,
+} from '../../store/api/userApi';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-controller';
 import Animated, {
   useSharedValue,
@@ -25,7 +28,7 @@ import Animated, {
 import Carousel, {ICarouselInstance} from 'react-native-reanimated-carousel';
 import {LongPressGestureHandler} from 'react-native-gesture-handler';
 import {storeData} from '../../utils/async-storage.tsx';
-import {LOGIN_SUCCESS, LoginType} from '../../store/slices/login.tsx';
+import {LOGIN_STATUS_CHANGED, LoginType} from '../../store/slices/login.tsx';
 
 const LoginScreen = () => {
   const dispatch = useDispatch();
@@ -64,10 +67,10 @@ const LoginScreen = () => {
       if (response.isSuccess) {
         Alert.alert('Login Successful!');
         dispatch(
-          LOGIN_SUCCESS({
+          LOGIN_STATUS_CHANGED({
             type: LoginType.LOGIN_SUCCESS,
             userToken: response.data.token,
-            loading: true,
+            loading: false,
           }),
         );
       } else {

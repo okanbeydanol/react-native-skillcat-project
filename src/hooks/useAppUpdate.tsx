@@ -2,7 +2,7 @@ import {getVersion} from 'react-native-device-info';
 import {useLazyGetAppVersionQuery} from '../store/api/userApi';
 import {Platform} from 'react-native';
 import {AppStatus} from '../constants/typescript/general-types';
-const useAppUpdate = () => {
+const useAppUpdate = (): {CheckAppUpdate: () => Promise<AppStatus | null>} => {
   const [app_version_trigger] = useLazyGetAppVersionQuery();
   const CheckAppUpdate = async (): Promise<AppStatus | null> => {
     return new Promise<AppStatus | null>(
@@ -10,21 +10,15 @@ const useAppUpdate = () => {
         try {
           app_version_trigger({})
             .then(d => {
-              if (d.isError && d.error) {
-                return resolve(null);
-              }
-              if (d.isSuccess && d.data?.error) {
-                return resolve(null);
-              }
-              const version = getVersion();
-              let platformVersion = '';
+              const version: string = getVersion();
+              let platformVersion: string = '';
               if (Platform.OS === 'ios') {
                 platformVersion = d?.data?.iosVersion || '0.0.0';
               } else if (Platform.OS === 'android') {
                 platformVersion = d?.data?.androidVersion || '0.0.0';
               }
-              const result = compareVersion(version, platformVersion);
-              let appStatus = AppStatus.Successful;
+              const result: number = compareVersion(version, platformVersion);
+              let appStatus: AppStatus = AppStatus.Successful;
               if (result === 1) {
                 appStatus = AppStatus.UpdateAvailable;
               } else if (result === 0) {
@@ -38,8 +32,6 @@ const useAppUpdate = () => {
             .catch(() => {
               return resolve(null);
             });
-
-          return resolve(null);
         } catch (error) {
           return resolve(null);
         }

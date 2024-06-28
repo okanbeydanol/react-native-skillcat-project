@@ -4,9 +4,9 @@ import {
   createApi,
   fetchBaseQuery,
 } from '@reduxjs/toolkit/query/react';
-import {USER} from '../../constants/typescript/general-types';
+import {StoreInfoResponse} from '../../constants/typescript/general-types';
 import {BASE_API_URL, BASE_URL} from '../../constants';
-import {getData} from '../../utils/async-storage';
+import {getData, storeData} from '../../utils/async-storage';
 
 export const getUserTokenFromStorage = async () => {
   try {
@@ -15,7 +15,13 @@ export const getUserTokenFromStorage = async () => {
     return null;
   }
 };
-
+export const saveUserTokenToStorage = async (token: string | null) => {
+  try {
+    return await storeData('s[userToken]', token);
+  } catch (e) {
+    return null;
+  }
+};
 export const customBaseQuery: BaseQueryFn<
   string | FetchArgs,
   unknown,
@@ -117,7 +123,7 @@ export const userApi = createApi({
         body: patch,
       }),
     }),
-    getAppVersion: build.query<any, any>({
+    getAppVersion: build.query<StoreInfoResponse, {}>({
       query: patch => ({
         url: 'local_skillcat_get_app_version',
         method: 'POST',
